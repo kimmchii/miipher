@@ -63,7 +63,7 @@ data:
         - 1.0
         - 0.7
         - 1.2
-    n_rirs: 1
+    n_rirs: 1000
     background_noise:
       p: 0.5
       snr:
