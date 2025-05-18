@@ -11,7 +11,10 @@ import hydra
 import os
 from tqdm import tqdm
 from .augmentation import AudioAugmentationApplier
+from typing import Literal
+from num2words import num2words
 from pythainlp.util import normalize
+import string
 
 class MiipherDataModule(LightningDataModule):
     REQUIRED_COLUMNS = ["audio_path", "text"]
@@ -19,6 +22,7 @@ class MiipherDataModule(LightningDataModule):
     ENG_CHAR_RANGE = r"a-zA-Z"
     DIGIT_PATTERN = re.compile(r"\d+")
     TH_EN_NUMBER_PATTERN = r"[A-Za-z'-]+(?:\s+[A-Za-z'-]+)*|[\u0E00-\u0E7F]+(?:\s+[\u0E00-\u0E7F]+)*|\d+"
+    PHONEME_SPACE_CHAR = " ▁ "
 
     def __init__(self, cfg) -> None:
         super().__init__()
@@ -78,6 +82,40 @@ class MiipherDataModule(LightningDataModule):
             return "thai+english"
         else:
             return "number"
+
+    # TODO: Dont hardcode the language code - THAI
+    def get_phoneme(self, text):
+        splitted_text = self.split_th_eng_numbers(text)
+        splitted_text_indices = [
+            {"text": part, "lang": self.detect_language(part)} for part in splitted_text
+        ]
+
+        total_thai_len = len(
+            [part for part in splitted_text_indices if part["lang"] == "thai"]
+        )
+
+        for i, part in enumerate(splitted_text_indices):
+            if part["lang"] == "thai" or (part["lang"] == "number" and total_thai_len > 0):
+                # Convert Thai numbers to words
+                text = self.replace_digits_with_thaiword(
+                    splitted_text_indices[i]["text"]
+                )
+                splitted_text_indices[i]["phoneme"] = self.custom_lang_text2phone_convertor.infer_sentence(text)
+            elif part["lang"] == "english":
+                text = splitted_text_indices[i]["text"]
+                splitted_text_indices[i]["phoneme"] = self.en_lang_text2phone_convertor.infer_sentence(text)
+            elif part["lang"] == "number":
+                # Convert English numbers to words
+                text = num2words(
+                    splitted_text_indices[i]["text"], lang="en", to="currency"
+                )
+                splitted_text_indices[i]["phoneme"] = self.en_lang_text2phone_convertor.infer_sentence(text)
+
+        phoneme = self.PHONEME_SPACE_CHAR.join(
+            [part["phoneme"] for part in splitted_text_indices]
+        )
+        return phoneme
+
 
     def load_dataset_from_csv(self, csv_path):
         df = pd.read_csv(csv_path)
