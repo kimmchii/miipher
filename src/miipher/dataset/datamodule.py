@@ -38,6 +38,41 @@ class MiipherDataModule(LightningDataModule):
         text = re.sub(r"\s+", " ", text).strip()
         return text
 
+    def load_dataset_from_csv(self, csv_path):
+        df = pd.read_csv(csv_path)
+        # Check if all required columns are present
+        for col in self.REQUIRED_COLUMNS:
+            if col not in df.columns:
+                raise ValueError(f"Missing required column: {col}")
+        # Clean the text column
+        df["text"] = df["text"].astype(str)
+        # Remove text in brackets ()
+        df["text"] = df["text"].apply(self.clean_text)
+        
+        # TODO: handle a case where the text contains multiple languages.
+        # Convert text to phonemes
+        df["phoneme"] = df["text"].apply(
+            lambda x: self.text2phone_convertor.infer_sentence(x)
+        )
+
+        # Check if audio files exist
+        for audio_path in tqdm(df["audio_path"]):
+            if not os.path.exists(audio_path):
+                print(f"Audio file does not exist: {audio_path}, Skipping...")
+        
+        texts = df["text"].tolist()
+        phonemes = df["phoneme"].tolist()
+        audio_paths = df["audio_path"].tolist()
+
+        return Dataset.from_dict(
+            {
+                "text": texts,
+                "phoneme": phonemes,
+                "audio_path": audio_paths,
+            }
+        ).cast_column("audio_path", Audio(sampling_rate=self.cfg.data.sample_rate))
+
+
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
