@@ -5,10 +5,12 @@ import torchaudio
 import random
 import pyroomacoustics as pra
 import numpy as np
+from numpy.random import default_rng
+
 import torch
 from pathlib import Path
 from tqdm import tqdm
-
+import random
 
 class AudioAugmentationApplier:
     def __init__(self, cfg) -> None:
@@ -19,6 +21,7 @@ class AudioAugmentationApplier:
         self.rirs = []
         self.prepare_rir(cfg.n_rirs)
         self.noise_audio_paths = []
+        self.rng = default_rng(seed=42)
 
         for noise_dir in self.cfg.background_noise.dirs:
             print("Loading noise files from:", noise_dir)
