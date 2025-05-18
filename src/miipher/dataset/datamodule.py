@@ -38,7 +38,8 @@ class MiipherDataModule(LightningDataModule):
                 f"Unsupported language code: {cfg.data.text_language.lang_code}. Only 'tha' is supported."
             )
         
-        self.text2phone_convertor = Text2PhonemeSequence(language=cfg.data.text_language.lang_code, is_cuda=self.device)
+        self.custom_lang_text2phone_convertor = Text2PhonemeSequence(language=cfg.data.text_language.lang_code, is_cuda=self.device)
+        self.en_lang_text2phone_convertor = Text2PhonemeSequence(language="eng-us", is_cuda=self.device)
         self.cfg = cfg
 
     def replace_digits_with_thaiword(self, text):
@@ -133,7 +134,7 @@ class MiipherDataModule(LightningDataModule):
         df["text"] = df["text"].apply(self.replace_digits_with_thaiword)
         # Convert text to phonemes
         df["phoneme"] = df["text"].apply(
-            lambda x: self.text2phone_convertor.infer_sentence(x)
+            lambda x: self.get_phoneme(x)
         )
 
         # Check if audio files exist
