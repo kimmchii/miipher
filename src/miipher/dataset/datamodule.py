@@ -1,20 +1,31 @@
 from lightning.pytorch import LightningDataModule
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
-import webdataset as wds
+from datasets import concatenate_datasets, Dataset, Audio
+import pandas as pd
+import re
+from text2phonemesequence import Text2PhonemeSequence
 import torch
 import torchaudio
 import hydra
+import os
+from tqdm import tqdm
+from .augmentation import AudioAugmentationApplier
 
 
 class MiipherDataModule(LightningDataModule):
+    REQUIRED_COLUMNS = ["audio_path", "text"]
+
     def __init__(self, cfg) -> None:
         super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.speech_ssl_processor = hydra.utils.instantiate(
             cfg.data.speech_ssl_processor.processor
         )
+        self.audio_augmentation_applier = AudioAugmentationApplier(cfg.data.augmentation)
         self.speech_ssl_sr = cfg.data.speech_ssl_processor.sr
         self.phoneme_tokenizer = hydra.utils.instantiate(cfg.data.phoneme_tokenizer)
+        self.text2phone_convertor = Text2PhonemeSequence(language=cfg.data.text_language.lang_code, is_cuda=self.device)
         self.cfg = cfg
 
     def setup(self, stage: str):
