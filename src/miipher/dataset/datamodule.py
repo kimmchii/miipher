@@ -15,6 +15,8 @@ from pythainlp.util import normalize
 
 class MiipherDataModule(LightningDataModule):
     REQUIRED_COLUMNS = ["audio_path", "text"]
+    TH_CHAR_RANGE = r"\u0E00-\u0E7F"  # Thai block
+    ENG_CHAR_RANGE = r"a-zA-Z"
     DIGIT_PATTERN = re.compile(r"\d+")
     TH_EN_NUMBER_PATTERN = r"[A-Za-z'-]+(?:\s+[A-Za-z'-]+)*|[\u0E00-\u0E7F]+(?:\s+[\u0E00-\u0E7F]+)*|\d+"
 
@@ -60,6 +62,22 @@ class MiipherDataModule(LightningDataModule):
         return parts
 
     def detect_language(self, text) -> Literal['thai', 'english', 'thai+english', 'number']:
+
+        # Count Thai and English characters
+        thai_chars = re.findall(f'[{self.TH_CHAR_RANGE}]', text)
+        english_chars = re.findall(f'[{self.ENG_CHAR_RANGE}]', text)
+
+        thai_count = len(thai_chars)
+        english_count = len(english_chars)
+
+        if thai_count > 0 and english_count == 0:
+            return "thai"
+        elif english_count > 0 and thai_count == 0:
+            return "english"
+        elif thai_count > 0 and english_count > 0:
+            return "thai+english"
+        else:
+            return "number"
 
     def load_dataset_from_csv(self, csv_path):
         df = pd.read_csv(csv_path)
