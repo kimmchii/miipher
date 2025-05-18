@@ -114,33 +114,37 @@ class MiipherDataModule(LightningDataModule):
         clean_wav_16ks = []
 
         for sample in batch:
-            clean_wav, sr = sample["speech.wav"]
+            clean_wav = sample["audio_path"]["array"]
+            tensor_clean_wav = torch.tensor(clean_wav)
+
+            #  Clip the audio to 20 seconds.
+            tensor_clean_wav = tensor_clean_wav.squeeze()[:self.cfg.data.sample_rate * 20]
             clean_wav_16ks.append(
-                torchaudio.functional.resample(clean_wav, sr, new_freq=16000).squeeze()[:16000*20]
+                tensor_clean_wav
             )
-            degraded_wav, sr = sample["degraded_speech.wav"]
+
+            degraded_wav = self.audio_augmentation_applier(tensor_clean_wav, self.cfg.data.sample_rate)
+            degraded_wav = degraded_wav.squeeze()[:self.cfg.data.sample_rate * 20]
             degraded_wav_16ks.append(
-                torchaudio.functional.resample(
-                    degraded_wav, sr, new_freq=16000
-                ).squeeze()[:16000*20]
+                degraded_wav
             )
         output["degraded_wav_16k"] = pad_sequence(degraded_wav_16ks, batch_first=True)
         output["degraded_wav_16k_lengths"] = torch.tensor(
             [degraded_wav_16k.size(0) for degraded_wav_16k in degraded_wav_16ks]
         )
         output["clean_ssl_input"] = self.speech_ssl_processor(
-            [x.numpy() for x in clean_wav_16ks],
+            [clean_wav.numpy() for clean_wav in clean_wav_16ks],
             return_tensors="pt",
-            sampling_rate=16000,
+            sampling_rate=self.cfg.data.sample_rate,
             padding=True,
         )
         output["degraded_ssl_input"] = self.speech_ssl_processor(
-            [x.numpy() for x in degraded_wav_16ks],
+            [degraded_wav.numpy() for degraded_wav in degraded_wav_16ks],
             return_tensors="pt",
-            sampling_rate=16000,
+            sampling_rate=self.cfg.data.sample_rate,
             padding=True,
         )
         output["phoneme_input_ids"] = self.phoneme_tokenizer(
-            [b["phoneme.txt"] for b in batch], return_tensors="pt", padding=True
+            [sample["phoneme"] for sample in batch], return_tensors="pt", padding=True
         )
         return output
