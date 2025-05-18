@@ -73,6 +73,24 @@ class MiipherDataModule(LightningDataModule):
         ).cast_column("audio_path", Audio(sampling_rate=self.cfg.data.sample_rate))
 
 
+    def setup(self, stage: str=None):
+        self.train_dataset = concatenate_datasets([
+            self.load_dataset_from_csv(dataset_csv_path) for dataset_csv_path in self.cfg.data.train_dataset_csv_path
+        ]).shuffle(seed=42)
+
+        if self.cfg.data.val_dataset_csv_path is not None:
+            self.val_dataset = concatenate_datasets([
+                self.load_dataset_from_csv(dataset_csv_path) for dataset_csv_path in self.cfg.data.val_dataset_csv_path
+            ])
+        else:
+            #  Split the train dataset into train and validation sets with 80% for training and 20% for validation
+            self.train_dataset = self.train_dataset.train_test_split(
+                test_size=0.2, shuffle=True, seed=42
+            )
+            self.val_dataset = self.train_dataset["test"]
+            self.train_dataset = self.train_dataset["train"]
+
+
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
