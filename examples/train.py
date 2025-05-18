@@ -13,9 +13,9 @@ def main(cfg: DictConfig):
     torch.set_float32_matmul_precision("medium")
     lightning_module = MiipherLightningModule(cfg)
     datamodule = MiipherDataModule(cfg)
-    loggers = hydra.utils.instantiate(cfg.train.loggers)
-    trainer = hydra.utils.instantiate(cfg.train.trainer, logger=loggers)
-    trainer.fit(lightning_module, datamodule)
+    training_logger = hydra.utils.instantiate(cfg.train.loggers)
+    trainer = hydra.utils.instantiate(cfg.train.trainer, logger=training_logger)
+    trainer.fit(lightning_module, datamodule, ckpt_path=cfg.train.resume_from_checkpoint)
 
 
 if __name__ == "__main__":
