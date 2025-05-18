@@ -6,7 +6,7 @@ import pandas as pd
 import re
 from text2phonemesequence import Text2PhonemeSequence
 import torch
-import torchaudio
+from pythainlp.util import num_to_thaiword
 import hydra
 import os
 from tqdm import tqdm
@@ -15,6 +15,7 @@ from .augmentation import AudioAugmentationApplier
 
 class MiipherDataModule(LightningDataModule):
     REQUIRED_COLUMNS = ["audio_path", "text"]
+    DIGIT_PATTERN = re.compile(r"\d+")
 
     def __init__(self, cfg) -> None:
         super().__init__()
@@ -25,9 +26,16 @@ class MiipherDataModule(LightningDataModule):
         self.audio_augmentation_applier = AudioAugmentationApplier(cfg.data.augmentation)
         self.speech_ssl_sr = cfg.data.speech_ssl_processor.sr
         self.phoneme_tokenizer = hydra.utils.instantiate(cfg.data.phoneme_tokenizer)
+        if cfg.data.text_language.lang_code != "tha":
+            raise ValueError(
+                f"Unsupported language code: {cfg.data.text_language.lang_code}. Only 'tha' is supported."
+            )
+        
         self.text2phone_convertor = Text2PhonemeSequence(language=cfg.data.text_language.lang_code, is_cuda=self.device)
         self.cfg = cfg
 
+    def replace_digits_with_thaiword(self, text):
+        return self.DIGIT_PATTERN.sub(lambda m: num_to_thaiword(int(m.group())), text)
 
     def clean_text(self, text):
         # Remove text in brackets ()
@@ -50,6 +58,8 @@ class MiipherDataModule(LightningDataModule):
         df["text"] = df["text"].apply(self.clean_text)
         
         # TODO: handle a case where the text contains multiple languages.
+        # Replace digits with Thai words
+        df["text"] = df["text"].apply(self.replace_digits_with_thaiword)
         # Convert text to phonemes
         df["phoneme"] = df["text"].apply(
             lambda x: self.text2phone_convertor.infer_sentence(x)
