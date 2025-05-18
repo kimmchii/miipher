@@ -142,7 +142,5 @@ class AudioAugmentationApplier:
 
         return waveform.squeeze()
 
-    def __call__(self, waveform, sample_rate):
+    def __call__(self, waveform: torch.tensor, sample_rate: int) -> torch.tensor:
         return self.process(waveform, sample_rate)
-
-            
