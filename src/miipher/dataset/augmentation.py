@@ -120,12 +120,22 @@ class AudioAugmentationApplier:
     def process(self, waveform, sample_rate):
         if len(waveform.shape) == 1:
             waveform = waveform.unsqueeze(0)
-        org_len = waveform.size(1)
-        waveform = self.apply_bg_noise(waveform, sample_rate)
-        if random.random() > self.cfg.reverb_conditions.p:
+        orginal_wav_len = waveform.size(1)
+
+        # Randomly apply background noise
+        random_apply_bg_noise_score = self.rng.uniform(0, 1)
+        if random_apply_bg_noise_score > self.cfg.background_noise.p:
+            waveform = self.apply_bg_noise(waveform, sample_rate)
+        
+        # Randomly apply reverb
+        random_apply_reverb_score = self.rng.uniform(0, 1)
+        if random_apply_reverb_score > self.cfg.reverb_conditions.p:
             waveform = self.apply_reverb(waveform)
+
         waveform = self.apply_codec(waveform, sample_rate)
-        assert org_len == waveform.size(1), f"{org_len}, {waveform.size(1)}"
+
+        assert orginal_wav_len == waveform.size(1), f"{orginal_wav_len}, {waveform.size(1)}"
+
         return waveform.squeeze()
 
     def __call__(self, waveform, sample_rate):
