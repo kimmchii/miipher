@@ -19,8 +19,20 @@ class AudioAugmentationApplier:
         self.rirs = []
         self.prepare_rir(cfg.n_rirs)
         self.noise_audio_paths = []
-        for root, pattern in self.cfg.background_noise.patterns:
-            self.noise_audio_paths.extend(list(Path(root).glob(pattern)))
+
+        for noise_dir in self.cfg.background_noise.dirs:
+            print("Loading noise files from:", noise_dir)
+            self.noise_audio_paths.extend(
+                AudioAugmentationApplier._get_files(noise_dir, self.cfg.background_noise.extensions)
+            )
+
+    @staticmethod
+    def _get_files(directory, extensions: list[str] = ["wav", "flac", "mp3"]):
+        all_files = []
+        for ext in extensions:
+            all_files.extend(Path(directory).rglob(f"*.{ext}"))
+        print(f"Found {len(all_files)} files with extensions {extensions} in {directory}")
+        return all_files
 
     @staticmethod
     def _align_waveform(wav1, wav2):
