@@ -77,6 +77,7 @@ class AudioAugmentationApplier:
         return augmented.float()
 
     def prepare_rir(self, n_rirs):
+        print("Preparing rir: ")
         for _ in tqdm(range(n_rirs)):
             xy_minmax = self.reverb_conditions.room_xy
             z_minmax = self.reverb_conditions.room_z
