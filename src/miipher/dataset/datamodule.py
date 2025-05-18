@@ -28,28 +28,15 @@ class MiipherDataModule(LightningDataModule):
         self.text2phone_convertor = Text2PhonemeSequence(language=cfg.data.text_language.lang_code, is_cuda=self.device)
         self.cfg = cfg
 
-    def setup(self, stage: str):
-        self.train_dataset = (
-            wds.WebDataset(
-                self.cfg.data.train_dataset_path,
-                resampled=True,
-                nodesplitter=wds.split_by_node,
-            )
-            .shuffle(1000)
-            .decode(wds.torch_audio)
-            # .decode(self.decode_phoneme_input)
-            .repeat(2)
-            .with_length(20000 * self.cfg.data.train_batch_size)
-        )
-        self.val_dataset = (
-            wds.WebDataset(
-                self.cfg.data.val_dataset_path, nodesplitter=wds.split_by_node
-            )
-            .decode(wds.torch_audio)
-            # .decode(self.decode_phoneme_input)
-            .repeat(2)
-            .with_length(3000 * 4 // self.cfg.data.val_batch_size)
-        )
+
+    def clean_text(self, text):
+        # Remove text in brackets ()
+        text = re.sub(r"\(.*?\)", "", text)
+        # Remove some special characters
+        text = re.sub(r"[^\w\s]", "", text)
+        # Remove extra spaces
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
 
     def train_dataloader(self):
         return DataLoader(
