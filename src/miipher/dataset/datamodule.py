@@ -16,6 +16,7 @@ from pythainlp.util import normalize
 class MiipherDataModule(LightningDataModule):
     REQUIRED_COLUMNS = ["audio_path", "text"]
     DIGIT_PATTERN = re.compile(r"\d+")
+    TH_EN_NUMBER_PATTERN = r"[A-Za-z'-]+(?:\s+[A-Za-z'-]+)*|[\u0E00-\u0E7F]+(?:\s+[\u0E00-\u0E7F]+)*|\d+"
 
     def __init__(self, cfg) -> None:
         super().__init__()
@@ -52,6 +53,13 @@ class MiipherDataModule(LightningDataModule):
                 [char for char in text if char not in string.punctuation]
             )
         return text
+    
+    def split_th_eng_numbers(self, text):
+        # Split the text into Thai, English, and numbers
+        parts = re.findall(self.TH_EN_NUMBER_PATTERN, text)
+        return parts
+
+    def detect_language(self, text) -> Literal['thai', 'english', 'thai+english', 'number']:
 
     def load_dataset_from_csv(self, csv_path):
         df = pd.read_csv(csv_path)
