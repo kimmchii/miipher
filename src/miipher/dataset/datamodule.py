@@ -11,7 +11,7 @@ import hydra
 import os
 from tqdm import tqdm
 from .augmentation import AudioAugmentationApplier
-
+from pythainlp.util import normalize
 
 class MiipherDataModule(LightningDataModule):
     REQUIRED_COLUMNS = ["audio_path", "text"]
@@ -37,13 +37,20 @@ class MiipherDataModule(LightningDataModule):
     def replace_digits_with_thaiword(self, text):
         return self.DIGIT_PATTERN.sub(lambda m: num_to_thaiword(int(m.group())), text)
 
-    def clean_text(self, text):
+    def clean_text(self, text, remove_punctuation: bool=True):
         # Remove text in brackets ()
         text = re.sub(r"\(.*?\)", "", text)
-        # Remove some special characters
-        text = re.sub(r"[^\w\s]", "", text)
+        
+        # Normalize the text
+        text = normalize(text)
+
         # Remove extra spaces
         text = re.sub(r"\s+", " ", text).strip()
+
+        if remove_punctuation:
+            text = "".join(
+                [char for char in text if char not in string.punctuation]
+            )
         return text
 
     def load_dataset_from_csv(self, csv_path):
