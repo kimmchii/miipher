@@ -1,13 +1,24 @@
 data:
   sample_rate: 16_000
-  # train_dataset_path: /mnt/hdd/miipher/miipher-train-{000000..000663}.tar.gz
   train_dataset_csv_path:
-    - data/csv/train_data.csv
-  # val_dataset_path: /mnt/hdd/miipher/miipher-val-{000000..000007}.tar.gz
+    - data/audio_phonemes/10-10-2024_vocals_phoneme.csv
+    - data/audio_phonemes/common_voice_neuro_12-dec-24_fix-permission_vocals_phoneme.csv
+    - data/audio_phonemes/medical_sentence_for_annotators_vocals_phoneme.csv
+    - data/audio_phonemes/medical_sentence_for_ML_vocals_phoneme.csv
+    - data/audio_phonemes/merged_commonvoice_feb-17_1st_round_vocals_phoneme.csv
+    - data/audio_phonemes/merged_commonvoice_feb-17_2nd_round_vocals_phoneme.csv
+    - data/audio_phonemes/merged_jan22_add_path_vocals_phoneme.csv
+    - data/audio_phonemes/presscribe_train_march25_vocals_phoneme.csv
+    - data/audio_phonemes/train-doctor-note_pKnot_batch1_jun19+24_vocals_phoneme.csv
+    - data/audio_phonemes/train-medical-examination-PPhob_june12_vocals_phoneme.csv
+    - data/audio_phonemes/train-whisper-medical-conversation_vocals_phoneme.csv
+    - data/audio_phonemes/whisper-medical-youtube_08-08-2024_vocals_phoneme.csv
+    - data/audio_phonemes/whisper-medical-youtube_ver2_vocals_phoneme.csv
+    - data/audio_phonemes/librespeech-train-clean-100_phoneme.csv
   val_dataset_csv_path:
-    - data/csv/test_data.csv
-  train_batch_size: 32
-  val_batch_size: 32
+    - data/audio_phonemes/train-doctor-note_pKnot_batch3_jun28_vocals_phoneme.csv
+  train_batch_size: 16
+  val_batch_size: 8
   speech_ssl_processor:
     processor:
       _target_: transformers.AutoFeatureExtractor.from_pretrained
@@ -17,6 +28,7 @@ data:
   phoneme_tokenizer:
     _target_: transformers.AutoTokenizer.from_pretrained
     pretrained_model_name_or_path: "vinai/xphonebert-base"
+  phoneme_max_length: 514
   # https://huggingface.co/vinai/xphonebert-base: Depending on the language we are working with
   # For now, let's use only Thai language
   text_language:
@@ -70,7 +82,11 @@ data:
         max: 30.0
         min: 5.0
       dirs:
-        - data/noise
+        - data/noises/AudioEventDataset
+        - data/noises/AudioSet
+        - data/noises/ESC-50
+        - data/noises/noise_train
+        - data/noises/presscribe_bg_30s
       extensions:
         - wav
         - flac
@@ -79,16 +95,16 @@ data:
 
 train:
   loggers:
-    # - _target_: lightning.pytorch.loggers.WandbLogger
-      # project: miipher
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: temp
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: miipher
+    # - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    #   save_dir: trained_miipher
   trainer:
     _target_: lightning.Trainer
     accelerator: "gpu"
     devices: -1
     check_val_every_n_epoch: 1
-    max_steps: 5 # In the paper, they trained for 400k steps.
+    max_steps: 400_000 # In the paper, they trained for 400k steps.
     # max_epochs: 3300
   resume_from_checkpoint: null
 model:
