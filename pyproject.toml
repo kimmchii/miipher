@@ -1,6 +1,6 @@
 [project]
 name = "miipher"
-version = "0.1.0"
+version = "0.2.0"
 description = "Add a short description here"
 authors = [
     { name = "Wataru Nakata", email = "wataru9871@gmail.com" }
@@ -21,6 +21,7 @@ dependencies = [
     "llvmlite~=0.40.1",
     "protobuf==4.23.4",
     "pythainlp==5.1.2",
+    "num2words==0.5.14",
 ]
 readme = "README.md"
 requires-python = "==3.10.12"
