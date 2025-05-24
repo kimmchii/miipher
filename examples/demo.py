@@ -8,18 +8,19 @@ import hydra
 import tempfile
 import omegaconf
 
-# miipher_path = "https://huggingface.co/spaces/Wataru/Miipher/resolve/main/miipher.ckpt"
-# config_path = "./ckpt_dir/miipher_ft-pressc/config.yaml"
 miipher_path = "../ckpt_dir/miipher_ft-pressc/epoch=41-step=238140.ckpt"
 miipher = MiipherLightningModule.load_from_checkpoint(miipher_path,map_location='cpu')
 vocoder = HiFiGANXvectorLightningModule.load_from_checkpoint("https://huggingface.co/spaces/Wataru/Miipher/resolve/main/vocoder_finetuned.ckpt",map_location='cpu')
 xvector_model = hydra.utils.instantiate(vocoder.cfg.data.xvector.model)
 xvector_model = xvector_model.to('cpu')
-preprocessor = PreprocessForInfer(miipher.cfg)
-# print(">>", miipher.cfg)
-# print(">>", type(miipher.cfg))
-# miipher_cfg = omegaconf.OmegaConf.load(config_path)
-# preprocessor = PreprocessForInfer(miipher_cfg)
+try:
+    preprocessor = PreprocessForInfer(miipher.cfg)
+
+# If the config for preprocessor is not found, load the custom config directly
+except Exception as e:
+    config_path = "./ckpt_dir/miipher_ft-pressc/config.yaml"
+    miipher_cfg = omegaconf.OmegaConf.load(config_path)
+    preprocessor = PreprocessForInfer(miipher_cfg)
 
 
 @torch.inference_mode()
