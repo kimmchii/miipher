@@ -1,0 +1,117 @@
+data:
+  sample_rate: 16_000
+  train_dataset_csv_path:
+    - data/csv/train_data.csv
+  val_dataset_csv_path:
+    - data/csv/test_data.csv
+  train_batch_size: 16
+  val_batch_size: 8
+  speech_ssl_processor:
+    processor:
+      _target_: transformers.AutoFeatureExtractor.from_pretrained
+      pretrained_model_name_or_path: "microsoft/wavlm-large"
+    sr: 16_000
+  phoneme_padding_idx: 1
+  phoneme_tokenizer:
+    _target_: transformers.AutoTokenizer.from_pretrained
+    pretrained_model_name_or_path: "vinai/xphonebert-base"
+  phoneme_max_length: 500 # The max phoneme lenght for the Roberta model is 514, So 500 is the save length.
+  # https://huggingface.co/vinai/xphonebert-base: Depending on the language we are working with
+  # For now, let's use only Thai language
+  text_language:
+    lang_code: "tha"
+  augmentation:
+    format_encoding_pairs:
+      - format: mp3
+        compression: 16
+      - format: mp3
+        compression: 32
+      - format: mp3
+        compression: 64
+      - format: mp3
+        compression: 128
+      - format: vorbis
+        compression: -1
+      - format: vorbis
+        compression: 0
+      - format: vorbis
+        compression: 1
+      - format: wav
+        encoding: ALAW
+        bits_per_sample: 8
+    reverb_conditions:
+      p: 0.5
+      reverbation_times:
+        max: 0.5
+        min: 0.2
+      room_xy:
+        max: 10.0
+        min: 2.0
+      room_z:
+        max: 5.0
+        min: 2.0
+      room_params:
+        fs: 22050
+        max_order: 10
+        absorption: 0.2
+      source_pos:
+        - 1.0
+        - 1.0
+        - 1.0
+      mic_pos:
+        - 1.0
+        - 0.7
+        - 1.2
+    n_rirs: 1000
+    background_noise:
+      p: 0.5
+      snr:
+        max: 30.0
+        min: 5.0
+      dirs:
+        - data/noise
+      extensions:
+        - wav
+        - flac
+        - mp3
+        - ogg
+
+train:
+  loggers:
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: miipher
+    # - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    #   save_dir: trained_miipher
+  trainer:
+    _target_: lightning.Trainer
+    accelerator: "gpu"
+    devices: -1
+    check_val_every_n_epoch: 1
+    max_steps: 400_000 # In the paper, they trained for 400k steps.
+    # max_epochs: 3300
+  resume_from_checkpoint: null
+model:
+  ssl_models:
+    model:
+      _target_: transformers.AutoModel.from_pretrained
+      pretrained_model_name_or_path: "microsoft/wavlm-large"
+    sr: 16_000
+    layer: 8
+  phoneme_model:
+    _target_: transformers.AutoModel.from_pretrained
+    pretrained_model_name_or_path: "vinai/xphonebert-base"
+  xvector_model:
+    _target_: speechbrain.pretrained.EncoderClassifier.from_hparams
+    source: speechbrain/spkrec-ecapa-voxceleb
+  text2phone_model:
+    _target_: text2phonemesequence.Text2PhonemeSequence
+  miipher:
+    n_phone_feature: 768
+    n_speaker_embedding: 192
+    n_ssl_feature: 1024
+    n_hidden_dim: 1024
+    n_conformer_blocks: 4
+    n_iters: 2
+optimizers:
+  _target_: torch.optim.AdamW
+  lr: 2e-5
