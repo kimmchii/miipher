@@ -1,9 +1,9 @@
 data:
   sample_rate: 16_000
   train_dataset_csv_path:
-    - data/csv/train_data.csv
+    - data/vocal/train_data.csv
   val_dataset_csv_path:
-    - data/csv/test_data.csv
+    - data/vocal/test_data.csv
   train_batch_size: 16
   val_batch_size: 8
   speech_ssl_processor:
