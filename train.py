@@ -10,7 +10,7 @@ args = argparse.ArgumentParser()
 args.add_argument(
     "--config",
     type=str,
-    default="./configs/config.yaml",
+    default="./config/config.yaml",
     help="Path to the config file",
 )
 args = args.parse_args()
