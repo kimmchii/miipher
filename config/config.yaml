@@ -27,7 +27,7 @@ data:
   phoneme_tokenizer:
     _target_: transformers.AutoTokenizer.from_pretrained
     pretrained_model_name_or_path: "vinai/xphonebert-base"
-  phoneme_max_length: 500 # The max phoneme lenght for the Roberta model is 514, So 500 is the save length.
+  phoneme_max_length: 500 # The max phoneme length for the Roberta model is 514, So 500 is the save length.
   # https://huggingface.co/vinai/xphonebert-base: Depending on the language we are working with
   # For now, let's use only Thai language
   text_language:
@@ -87,6 +87,26 @@ data:
         - flac
         - mp3
         - ogg
+    static_burst_noise_speech:
+      p: 0.5
+      burst_amplitude:
+        max: 0.15
+        min: 0.1
+    mask_silence:
+      p: 0.5
+      length:
+        max: 0.05
+        min: 0.01
+    snr_noise:
+      p: 0.5
+      db:
+        max: 20
+        min: 0
+    cut_off_frequency:
+      p: 0.5
+      freq:
+        max: 5000
+        min: 1000
 
 train:
   loggers:

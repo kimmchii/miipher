@@ -1,9 +1,9 @@
 data:
   sample_rate: 16_000
   train_dataset_csv_path:
-    - data/csv/train_data.csv
+    - data/vocal/train_data.csv
   val_dataset_csv_path:
-    - data/csv/test_data.csv
+    - data/vocal/test_data.csv
   train_batch_size: 16
   val_batch_size: 8
   speech_ssl_processor:
@@ -11,11 +11,23 @@ data:
       _target_: transformers.AutoFeatureExtractor.from_pretrained
       pretrained_model_name_or_path: "microsoft/wavlm-large"
     sr: 16_000
+  g2p_processor:
+    tokenizer:
+      _target_: transformers.AutoTokenizer.from_pretrained
+      pretrained_model_name_or_path: google/byt5-small
+    model:
+      _target_: transformers.T5ForConditionalGeneration.from_pretrained
+      pretrained_model_name_or_path: charsiu/g2p_multilingual_byT5_small_100
+    langs:
+      - lang_code: eng-us
+        char_range_regex: "[A-Za-z'-]+" # Character range in regex for English characters
+      - lang_code: tha
+        char_range_regex: "[\u0E00-\u0E7F]+" # Character range in regex for Thai characters
   phoneme_padding_idx: 1
   phoneme_tokenizer:
     _target_: transformers.AutoTokenizer.from_pretrained
     pretrained_model_name_or_path: "vinai/xphonebert-base"
-  phoneme_max_length: 500 # The max phoneme lenght for the Roberta model is 514, So 500 is the save length.
+  phoneme_max_length: 500 # The max phoneme length for the Roberta model is 514, So 500 is the save length.
   # https://huggingface.co/vinai/xphonebert-base: Depending on the language we are working with
   # For now, let's use only Thai language
   text_language:
@@ -62,7 +74,7 @@ data:
         - 1.0
         - 0.7
         - 1.2
-    n_rirs: 1000
+    n_rirs: 1
     background_noise:
       p: 0.5
       snr:
@@ -75,13 +87,33 @@ data:
         - flac
         - mp3
         - ogg
+    static_burst_noise_speech:
+      p: 0.0
+      burst_amplitude:
+        max: 0.15
+        min: 0.1
+    mask_silence:
+      p: 0.0
+      length:
+        max: 0.05
+        min: 0.01
+    snr_noise:
+      p: 0.0
+      db:
+        max: 20
+        min: 0
+    cut_off_frequency:
+      p: 0.0
+      freq:
+        max: 5000
+        min: 1000
 
 train:
   loggers:
-    - _target_: lightning.pytorch.loggers.WandbLogger
-      project: miipher
-    # - _target_: lightning.pytorch.loggers.TensorBoardLogger
-    #   save_dir: trained_miipher
+    # - _target_: lightning.pytorch.loggers.WandbLogger
+    #   project: miipher
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: trained_miipher
   trainer:
     _target_: lightning.Trainer
     accelerator: "gpu"
