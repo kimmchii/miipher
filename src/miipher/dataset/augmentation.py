@@ -112,6 +112,25 @@ class AudioAugmentationApplier:
         noise = torch.randn_like(waveform) * noise_power.sqrt()
         return waveform + noise
 
+    def cut_off_frequency(self, waveform, sample_rate, cutoff_freq):
+        """
+        Apply a low-pass filter to the waveform to cut off frequencies above cutoff_freq.
+        waveform: torch.Tensor, shape (channels, samples) or (samples,)
+        sample_rate: int
+        cutoff_freq: float, cutoff frequency in Hz
+        """
+        if isinstance(waveform, np.ndarray):
+            waveform = torch.from_numpy(waveform)
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+        
+        nyquist = 0.5 * sample_rate
+        normal_cutoff = cutoff_freq / nyquist
+        b, a = scipy.signal.butter(1, normal_cutoff, btype='low', analog=False)
+        
+        filtered_waveform = scipy.signal.filtfilt(b, a, waveform.numpy(), axis=-1)
+        return torch.from_numpy(filtered_waveform.copy()).float()
+    
     def apply_bg_noise(self, waveform, sample_rate):
         snr_max, snr_min = self.background_noise.snr.max, self.background_noise.snr.min
         snr = random.uniform(snr_min, snr_max)
