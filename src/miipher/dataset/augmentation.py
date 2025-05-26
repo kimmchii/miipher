@@ -131,6 +131,33 @@ class AudioAugmentationApplier:
         filtered_waveform = scipy.signal.filtfilt(b, a, waveform.numpy(), axis=-1)
         return torch.from_numpy(filtered_waveform.copy()).float()
     
+    def apply_burst_static_speech(self, waveform, sample_rate, burst_amplitude):
+        """
+        waveform: torch.Tensor, shape (channels, samples) or (samples,)
+        sample_rate: int
+        burst_amplitude: float
+        """
+        if isinstance(waveform, np.ndarray):
+            waveform = torch.from_numpy(waveform)
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+        waveform_aug = waveform.clone()
+
+        speech_timestamps = get_speech_timestamps(
+            audio=waveform_aug,
+            model=load_silero_vad(),
+            sampling_rate=sample_rate,
+            return_seconds=True,  # Return speech timestamps in seconds (default is samples)
+        )
+        #Apply static noise bursts to speech segments
+        for segment in speech_timestamps:
+            start, end = int(segment['start'] * sample_rate), int(segment['end'] * sample_rate)
+            static_burst = torch.randn(1, end - start) * burst_amplitude
+
+            waveform_aug[:, start:end] += static_burst
+
+        return waveform_aug.clamp(-1.0, 1.0)  # Ensure waveform is within [-1, 1] range
+    
     def apply_bg_noise(self, waveform, sample_rate):
         snr_max, snr_min = self.background_noise.snr.max, self.background_noise.snr.min
         snr = random.uniform(snr_min, snr_max)
