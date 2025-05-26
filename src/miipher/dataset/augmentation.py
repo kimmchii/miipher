@@ -11,6 +11,8 @@ import torch
 from pathlib import Path
 from tqdm import tqdm
 import random
+import scipy
+from silero_vad import get_speech_timestamps, load_silero_vad
 
 class AudioAugmentationApplier:
     def __init__(self, cfg) -> None:
@@ -94,6 +96,21 @@ class AudioAugmentationApplier:
             rir = torch.tensor(np.array(room.rir[0]))
             rir = rir / rir.norm(p=2)
             self.rirs.append(rir)
+
+    def apply_noise_with_snr(self, waveform, snr_db):
+        """
+        waveform: torch.Tensor, shape (channels, samples) or (samples,)
+        snr_db: float, desired signal-to-noise ratio in dB
+        """
+        if isinstance(waveform, np.ndarray):
+            waveform = torch.from_numpy(waveform)
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+        signal_power = waveform.pow(2).mean()
+        snr_linear = 10 ** (snr_db / 10)
+        noise_power = signal_power / snr_linear
+        noise = torch.randn_like(waveform) * noise_power.sqrt()
+        return waveform + noise
 
     def apply_bg_noise(self, waveform, sample_rate):
         snr_max, snr_min = self.background_noise.snr.max, self.background_noise.snr.min
