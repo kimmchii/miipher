@@ -158,6 +158,28 @@ class AudioAugmentationApplier:
 
         return waveform_aug.clamp(-1.0, 1.0)  # Ensure waveform is within [-1, 1] range
     
+    def apply_mask_silence(self, waveform, sample_rate, mask_length=0.1):
+        """
+        waveform: torch.Tensor, shape (channels, samples) or (samples,)
+        sample_rate: int
+        mask_length: float, seconds
+        """
+        if isinstance(waveform, np.ndarray):
+            waveform = torch.from_numpy(waveform)
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)
+        mask_length_samples = int(mask_length * sample_rate)
+        waveform_aug = waveform.clone()
+
+        # Randomly mask silence in the waveform
+        for i in range(0, waveform.size(1), mask_length_samples):
+            if random.random() < 0.1:
+                start = i
+                end = min(i + mask_length_samples, waveform.size(1))
+                silence_mask = torch.zeros_like(waveform[:, start:end])
+                waveform_aug[:, start:end] = silence_mask
+        return waveform_aug
+
     def apply_bg_noise(self, waveform, sample_rate):
         snr_max, snr_min = self.background_noise.snr.max, self.background_noise.snr.min
         snr = random.uniform(snr_min, snr_max)
