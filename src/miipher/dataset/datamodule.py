@@ -279,6 +279,6 @@ class MiipherDataModule(LightningDataModule):
             padding=True,
         )
         output["phoneme_input_ids"] = self.phoneme_tokenizer(
-            [sample["phoneme"] for sample in batch], return_tensors="pt", padding=True
+            [sample["phoneme"] for sample in batch], return_tensors="pt", padding=True, truncation=True, max_length=self.cfg.data.phoneme_max_length
         )
         return output
