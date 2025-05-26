@@ -213,13 +213,40 @@ class AudioAugmentationApplier:
 
         # Randomly apply background noise
         random_apply_bg_noise_score = self.rng.uniform(0, 1)
-        if random_apply_bg_noise_score > self.cfg.background_noise.p:
+        if random_apply_bg_noise_score < self.cfg.background_noise.p:
             waveform = self.apply_bg_noise(waveform, sample_rate)
         
         # Randomly apply reverb
         random_apply_reverb_score = self.rng.uniform(0, 1)
-        if random_apply_reverb_score > self.cfg.reverb_conditions.p:
+        if random_apply_reverb_score < self.cfg.reverb_conditions.p:
             waveform = self.apply_reverb(waveform)
+
+        # 
+        random_apply_burst_static_speech_score = self.rng.uniform(0, 1)
+        if random_apply_burst_static_speech_score < self.cfg.static_burst_noise_speech.p:
+            static_burst_amplitude = self.rng.uniform(
+                self.cfg.static_burst_noise_speech.burst_amplitude.min,
+                self.cfg.static_burst_noise_speech.burst_amplitude.max,
+            )
+            waveform = self.apply_burst_static_speech(waveform, sample_rate, burst_amplitude=static_burst_amplitude)
+
+        random_apply_mask_silence_score = self.rng.uniform(0, 1)
+        if random_apply_mask_silence_score < self.cfg.mask_silence.p:
+            mask_length = self.rng.uniform(self.cfg.mask_silence.length.min, self.cfg.mask_silence.length.max)
+            waveform = self.apply_mask_silence(waveform, sample_rate, mask_length=mask_length)
+
+        # Randomly apply low-pass filter
+        random_apply_cut_off_frequency_score = self.rng.uniform(0, 1)
+        if random_apply_cut_off_frequency_score < self.cfg.cut_off_frequency.p:
+            cutoff_freq = self.rng.uniform(
+                self.cfg.cut_off_frequency.freq.min, self.cfg.cut_off_frequency.freq.max
+            )
+            if cutoff_freq > sample_rate / 2:
+                raise ValueError(
+                    f"Cutoff frequency {cutoff_freq} is greater than Nyquist frequency {sample_rate / 2}, It should be less than or equal to {sample_rate / 2}"
+                    f"Please check your config file at cut_off_frequency.freq"
+                )
+            waveform = self.cut_off_frequency(waveform, sample_rate, cutoff_freq=cutoff_freq)
 
         waveform = self.apply_codec(waveform, sample_rate)
 
