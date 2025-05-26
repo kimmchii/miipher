@@ -22,6 +22,7 @@ dependencies = [
     "protobuf==4.23.4",
     "pythainlp==5.1.2",
     "num2words==0.5.14",
+    "silero-vad==5.1.2"
 ]
 readme = "README.md"
 requires-python = "==3.10.12"
